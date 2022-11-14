@@ -31,14 +31,25 @@ public class Test {
 
         Server[] servers = initServer(n, prefs, ownedHouses);
 
-        servers[0].Start();
-
+        servers[2].Start();
 
         for (Server server : servers) {
             System.out.println("Server: " + server.me);
             System.out.println(server.pref.get(0) + " " + server.pref.get(1) + " " + server.pref.get(2));
             System.out.println(server.prefMap.get(0) + " " + server.prefMap.get(1) + " " + server.prefMap.get(2));
         }
+        System.out.println("=====================");
+
+        for (Server server : servers) {
+            System.out.println("Server: " + server.me + ", coin: " + server.circleStates.coin +
+                                ", active: " + server.circleStates.active + ", succ: " + server.succ);
+        }
+        System.out.println("=====================");
+
+        for (Server server : servers) {
+            System.out.println("Server: " + server.me + ", inCircle: " + server.circleStates.inCircle);
+        }
+
 
 
 
