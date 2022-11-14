@@ -27,29 +27,40 @@ public class Test {
         prefs.add(Arrays.asList(3, 1, 2));
         prefs.add(Arrays.asList(3, 1, 2));
 
+//        prefs.add(Arrays.asList(1, 2, 0));
+//        prefs.add(Arrays.asList(2, 0, 1));
+//        prefs.add(Arrays.asList(0, 1, 2));
         List<Integer> ownedHouses = new ArrayList<>(Arrays.asList(1, 2, 3));
-
         Server[] servers = initServer(n, prefs, ownedHouses);
 
-        servers[2].Start();
+        servers[1].Start();
+
+//        for (Server server : servers) {
+//            System.out.println("Server: " + server.me);
+//            System.out.println(server.pref.get(0) + " " + server.pref.get(1) + " " + server.pref.get(2));
+//            System.out.println(server.prefMap.get(1) + " " + server.prefMap.get(2) + " " + server.prefMap.get(3));
+//        }
+//        System.out.println("=====================");
+
+//        for (Server server : servers) {
+//            System.out.println("----------------");
+//            System.out.println("Server: " + server.me);
+//            for (int i = 0; i < server.pref.size(); i++) {
+//                System.out.print(server.pref.get(i) + " ");
+//            }
+//            System.out.println();
+//            System.out.println(server.circleStates.active);
+//        }
+//        System.out.println("=====================");
+
+//        for (Server server : servers) {
+//            System.out.println("Server: " + server.me + ", inCircle: " + server.circleStates.inCircle);
+//        }
+        System.out.println("====================================");
 
         for (Server server : servers) {
-            System.out.println("Server: " + server.me);
-            System.out.println(server.pref.get(0) + " " + server.pref.get(1) + " " + server.pref.get(2));
-            System.out.println(server.prefMap.get(0) + " " + server.prefMap.get(1) + " " + server.prefMap.get(2));
+            System.out.println("Server: " + server.me + ", assigned: " + server.assigned + ", house: " + server.house);
         }
-        System.out.println("=====================");
-
-        for (Server server : servers) {
-            System.out.println("Server: " + server.me + ", coin: " + server.circleStates.coin +
-                                ", active: " + server.circleStates.active + ", succ: " + server.succ);
-        }
-        System.out.println("=====================");
-
-        for (Server server : servers) {
-            System.out.println("Server: " + server.me + ", inCircle: " + server.circleStates.inCircle);
-        }
-
 
 
 
