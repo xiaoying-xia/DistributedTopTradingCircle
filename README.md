@@ -16,7 +16,7 @@ Original paper: [Parallel and Distributed Algorithms for the housing allocation 
   - Call `Start()` from any of the servers
   - Print `server.house` to check the result
   
-## House Allocation Problem
+## House Market Problem
 We have $n$ agents, every agent holds a house initially, and each of them have a preference list of the houses on the market. Our goal is to find a [core-stable](https://en.wikipedia.org/wiki/Core_(game_theory)) allocation (a re-allocation of houses to agents, such that all mutually-beneficial exchanges have been realized).  
 
 - Input: $n$ servers, their initially owned houses and preference list
