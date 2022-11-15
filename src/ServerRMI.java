@@ -10,7 +10,6 @@ public interface ServerRMI extends Remote {
     void handleCountCircle(Message msg) throws RemoteException;
     void handleOneStage(Message msg) throws RemoteException;
     void handleCountAssigned(Message msg) throws RemoteException;
-
     void handleOK(Message msg) throws RemoteException;
     void handleRemove(Message msg) throws RemoteException;
     void handleNextStage(Message msg) throws RemoteException;

@@ -3,28 +3,24 @@ import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 import java.rmi.server.UnicastRemoteObject;
 import java.util.*;
-import java.util.concurrent.locks.ReentrantLock;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 class LasVegasCircleStates {
 
     boolean active; // whether I'm still active
     int inCircle; // -1: undecided, 0: Not in circle, 1: in circle
-    int parent; // If I'm in a circle, who's my parent server
+    int parent; // If I'm in circle, who's my parent server
     List<Integer> children; // If I'm in a circle, who's my children servers
-    int nDecided;
-    int nPerRound;
     int coin; // -1: undecided, 1: head, 0: tail
-    boolean succActive;
-    int succCoin;
-    int countCircle;
+    boolean succActive; // active status of succ
+    int succCoin; // coin value of succ
+    int countCircle; // total servers that have decided whether they are in circle in one round of finding circle algorithm
 
     public LasVegasCircleStates() {
         this.active = true;
         this.inCircle = -1;
         this.parent = -1;
         this.children = new ArrayList<>();
-        this.nDecided = 0;
-        this.nPerRound = 0;
         this.coin = -1;
         this.succCoin = -1;
         this.succActive = true;
@@ -35,7 +31,6 @@ class LasVegasCircleStates {
 public class Server implements ServerRMI {
 
     // Peer information
-    ReentrantLock mutex; // lock
     String[] peers; // hostname
     int[] ports; // host port
     int me; // index into peers[]
@@ -54,29 +49,28 @@ public class Server implements ServerRMI {
     int countAssigned; // total number of servers assigned
     boolean hasNextStage; // whether to continue TTC
 
+//    AtomicBoolean dead;// for testing
+
+    Registry registry;
+    ServerRMI stub;
+
 
     public Server(String[] peers, int[] ports, int me, List<Integer> pref, int house) {
         this.peers = peers;
         this.ports = ports;
         this.me = me;
+
         this.pref = new ArrayList<>();
         this.pref.addAll(pref);
         this.prefMap = new HashMap<>();
-
         this.house = house;
-        Registry registry;
-        ServerRMI stub;
-
         this.circleStates = new LasVegasCircleStates();
         this.broadcasted = false;
-
-        this.mutex = new ReentrantLock();
         this.assigned = false;
         this.succ = -1;
         this.next = -1;
         this.countAssigned = 0;
         this.hasNextStage = true;
-
 
         // register peers in the system
         try{
@@ -95,45 +89,60 @@ public class Server implements ServerRMI {
         try{
             Registry registry = LocateRegistry.getRegistry(this.ports[id]);
             stub = (ServerRMI) registry.lookup("Server"); // stub: the server with id
-            if (rmi.equals("handleBroadcast"))
-                stub.handleBroadcast(msg);
-            else if (rmi.equals("handleFlip"))
-                stub.handleFlip(msg);
-            else if (rmi.equals("handleExplore"))
-                stub.handleExplore(msg);
-            else if (rmi.equals("handleSuccReq"))
-                return stub.handleSuccReq(msg);
-            else if (rmi.equals("handleCircle"))
-                stub.handleCircle(msg);
-            else if (rmi.equals("handleCountCircle"))
-                stub.handleCountCircle(msg);
-            else if (rmi.equals("handleOneStage"))
-                stub.handleOneStage(msg);
-            else if (rmi.equals("handleCountAssigned"))
-                stub.handleCountAssigned(msg);
-            else if (rmi.equals("handleOK"))
-                stub.handleOK(msg);
-            else if (rmi.equals("handleRemove"))
-                stub.handleRemove(msg);
-            else if (rmi.equals("handleNextStage"))
-                stub.handleNextStage(msg);
-            else if (rmi.equals("handleReset"))
-                stub.handleReset(msg);
-            else
-                System.out.println("Wrong parameters: " + rmi);
+            switch (rmi) {
+                case "handleBroadcast":
+                    stub.handleBroadcast(msg);
+                    break;
+                case "handleFlip":
+                    stub.handleFlip(msg);
+                    break;
+                case "handleExplore":
+                    stub.handleExplore(msg);
+                    break;
+                case "handleSuccReq":
+                    return stub.handleSuccReq(msg);
+                case "handleCircle":
+                    stub.handleCircle(msg);
+                    break;
+                case "handleCountCircle":
+                    stub.handleCountCircle(msg);
+                    break;
+                case "handleOneStage":
+                    stub.handleOneStage(msg);
+                    break;
+                case "handleCountAssigned":
+                    stub.handleCountAssigned(msg);
+                    break;
+                case "handleOK":
+                    stub.handleOK(msg);
+                    break;
+                case "handleRemove":
+                    stub.handleRemove(msg);
+                    break;
+                case "handleNextStage":
+                    stub.handleNextStage(msg);
+                    break;
+                case "handleReset":
+                    stub.handleReset(msg);
+                    break;
+                default:
+                    System.out.println("Wrong parameters: " + rmi);
+                    break;
+            }
         } catch (Exception e){
             e.printStackTrace();
         }
         return null;
     }
 
+    // Kickoff method, users can invoke top trading circle algorithm from any server
     public void Start() {
         try {
             // Broadcast my house information to everyone
             this.broadcastCurrentHouse();
 
             while(hasNextStage && countAssigned < peers.length) {
-                System.out.println("====================Starting New Stage====================");
+                System.out.println("=============Starting New Stage=============");
                 hasNextStage = false;
                 // Reset variables for unassigned servers
                 for (int i = 0; i < peers.length; i++) {
@@ -146,7 +155,9 @@ public class Server implements ServerRMI {
 
                 // Keep doing this until everyone knows whether he's in circle
                 while (circleStates.countCircle < peers.length) {
+//                    System.out.println("stuck!!!");
                     // Flip a coin for myself, send "flip-coin" request to everyone
+                    System.out.println("Flipping coin...");
                     for (int i = 0; i < peers.length; i++) {
                         if (me == i) {
                             handleFlip(null);
@@ -157,22 +168,22 @@ public class Server implements ServerRMI {
                     // Explore my succ and send "explore" request to everyone
                     for (int i = 0; i < peers.length; i++) {
                         if (me == i) {
-                            handleExplore(new Message(MessageTypes.BroadCast, me, -1, false));
-                        } else Send("handleExplore", new Message(MessageTypes.BroadCast, me, -1, false), i);
+                            handleExplore(new Message(me, -1, false));
+                        } else Send("handleExplore", new Message(me, -1, false), i);
                     }
                 }
-                System.out.println("=================================");
-                System.out.println("This round of circle found");
-                System.out.println("servers decided: " + circleStates.countCircle);
-                System.out.println("Server: " + me + ", inCircle: " + circleStates.inCircle + ", active: " + circleStates.active);
-                System.out.println("next: " + next + ", succ: " + succ);
-                System.out.println("My coin: " + circleStates.coin + ", succCoin: " + Send("handleSuccReq", null, succ).value);
+//                System.out.println("=================================");
+//                System.out.println("This round of circle found");
+//                System.out.println("servers decided: " + circleStates.countCircle);
+//                System.out.println("Server: " + me + ", inCircle: " + circleStates.inCircle + ", active: " + circleStates.active);
+//                System.out.println("next: " + next + ", succ: " + succ);
+//                System.out.println("My coin: " + circleStates.coin + ", succCoin: " + Send("handleSuccReq", null, succ).value);
                 // Now, everyone unassigned knows whether he's in the circle
                 // We can move on to the next step: exchange houses for servers in circle
                 for (int i = 0; i < peers.length; i++) {
                     if (me == i) {
-                        handleOneStage(new Message(MessageTypes.Cycle, me, -1, false));
-                    } else Send("handleOneStage", new Message(MessageTypes.Cycle, me, -1, false), i);
+                        handleOneStage(new Message(me, -1, false));
+                    } else Send("handleOneStage", new Message(me, -1, false), i);
                 }
 
             }
@@ -184,7 +195,7 @@ public class Server implements ServerRMI {
 
     // Broadcast my house information to everyone including myself
     public void broadcastCurrentHouse() throws RemoteException {
-        Message msgHouse = new Message(MessageTypes.BroadCast, this.me, this.house, false);
+        Message msgHouse = new Message(this.me, this.house, false);
         for (int i = 0; i < peers.length; i++) {
             if (i == this.me) { // if broadcast to myself, set broadcasted as true first
                 this.broadcasted = true;
@@ -200,8 +211,8 @@ public class Server implements ServerRMI {
     // 2: broadcast my house information if I've not broadcasted
     @Override
     public void handleBroadcast(Message msg) throws RemoteException {
-        for (int i = 0; i < pref.size(); i++) {
-            if (pref.get(i) == msg.value) { // Find the index of the house
+        for (Integer h : pref) {
+            if (h == msg.value) { // Find the index of the house
                 prefMap.put(msg.value, msg.index);
             }
         }
@@ -211,8 +222,8 @@ public class Server implements ServerRMI {
         }
     }
 
-    // flip a coin for myself
-    // Update next and succ
+    // Coin-flipping stage of Las Vegas Circle Finding Algorithm
+    // Flip a coin for myself on receiving this msg
     @Override
     public void handleFlip(Message msg) throws RemoteException {
         // Flip the coin
@@ -224,6 +235,7 @@ public class Server implements ServerRMI {
 
     }
 
+    // Explore stage of Las Vegas Circle Finding Algorithm
     // 1. Request information from succ
     // 2. Explore through succ until meet a succ who is active
     @Override
@@ -241,28 +253,30 @@ public class Server implements ServerRMI {
             if (circleStates.active) {
                 while (!succActive) {
                     circleStates.children.add(succ);
+                    if (succ == succSucc) break; // Jump out of the loop if someone in front of me finds a circle
                     succ = succSucc;
                     succActive = Send("handleSuccReq", null, succ).flag;
                 }
                 if (succ == me) {
+                    System.out.println("Root found: " + me);
                     circleStates.active = false;
                     circleStates.inCircle = 1;
                     Send("handleCountCircle", null, msg.index);
                 }
             }
-            // Right place ?????
+            // On finding circle, run notify step
             if (succ == me) {
                 Set<Integer> set = new HashSet<>();
                 set.add(me);
                 // Send "Circle" message to all children
                 for (int child : circleStates.children) {
-                    Send("handleCircle", new Message(MessageTypes.Cycle, msg.index, -1, true), child);
+                    Send("handleCircle", new Message(msg.index, -1, true), child);
                     set.add(child);
                 }
                 // Send "Not in Circle" message to everyone else (excluding myself)
                 for (int i = 0; i < peers.length; i++) {
                     if (!set.contains(i) && i != me) {
-                        Send("handleCircle", new Message(MessageTypes.Cycle, msg.index, -1, false), i);
+                        Send("handleCircle", new Message(msg.index, -1, false), i);
                     }
                 }
             }
@@ -271,9 +285,10 @@ public class Server implements ServerRMI {
 
     }
 
+    // Return my status to whom I'm his successor
     @Override
     public Message handleSuccReq(Message msg) throws RemoteException {
-        return new Message(MessageTypes.Cycle, succ, circleStates.coin, circleStates.active);
+        return new Message(succ, circleStates.coin, circleStates.active);
     }
 
     // Notify all of my children when receiving cycle message
@@ -292,11 +307,13 @@ public class Server implements ServerRMI {
         }
     }
 
+    // Send msg to kickoff server if I've decided whether I'm in the circle for this round
     @Override
     public void handleCountCircle(Message msg) throws RemoteException {
         circleStates.countCircle++;
     }
 
+    // Distributed Top Trading Circle Algorithm
     @Override
     public void handleOneStage(Message msg) throws RemoteException {
         if (circleStates.inCircle == 1 && !assigned) {
@@ -317,8 +334,8 @@ public class Server implements ServerRMI {
             // Broadcast remove(house) to all
             for (int i = 0; i < peers.length; i++) {
                 if (me == i) {
-                    handleRemove(new Message(MessageTypes.Remove, me, house, false)); // matters: house
-                } else Send("handleRemove", new Message(MessageTypes.Remove, me, house, false), i);
+                    handleRemove(new Message(me, house, false)); // matters: house
+                } else Send("handleRemove", new Message(me, house, false), i);
             }
 
             // Send OK to parent if no children
@@ -331,11 +348,13 @@ public class Server implements ServerRMI {
         }
     }
 
+    // For kickoff server, receiving this type of message means one more server has been assigned
     @Override
     public void handleCountAssigned(Message msg) throws RemoteException {
         countAssigned++;
     }
 
+    // Propagate OK meg in circle tree
     @Override
     public void handleOK(Message msg) throws RemoteException {
         // Broadcast OK message upward
@@ -346,6 +365,7 @@ public class Server implements ServerRMI {
         }
     }
 
+    // Remove assigned house
     @Override
     public void handleRemove(Message msg) throws RemoteException {
         int toRemove = msg.value;
@@ -358,11 +378,13 @@ public class Server implements ServerRMI {
         }
     }
 
+    // For Kickoff Server, receiving this means this round has ended, can start next round
     @Override
     public void handleNextStage(Message msg) throws RemoteException {
         hasNextStage = true;
     }
 
+    // Reset status for each new stage
     @Override
     public void handleReset(Message msg) throws RemoteException {
         if (!assigned) {
@@ -374,4 +396,19 @@ public class Server implements ServerRMI {
             succ = next;
         }
     }
+
+//    public void Kill(){
+//        this.dead.getAndSet(true);
+//        if(this.registry != null){
+//            try {
+//                UnicastRemoteObject.unexportObject(this.registry, true);
+//            } catch(Exception e){
+//                System.out.println("None reference");
+//            }
+//        }
+//    }
+//
+//    public boolean isDead(){
+//        return this.dead.get();
+//    }
 }
