@@ -157,7 +157,7 @@ public class Server implements ServerRMI {
                 while (circleStates.countCircle < peers.length) {
 //                    System.out.println("stuck!!!");
                     // Flip a coin for myself, send "flip-coin" request to everyone
-                    System.out.println("Flipping coin...");
+                    System.out.println("Start flipping coin...");
                     for (int i = 0; i < peers.length; i++) {
                         if (me == i) {
                             handleFlip(null);
@@ -258,7 +258,9 @@ public class Server implements ServerRMI {
                     succActive = Send("handleSuccReq", null, succ).flag;
                 }
                 if (succ == me) {
-                    System.out.println("Root found: " + me);
+                    System.out.println("--------------------------------");
+                    System.out.println("Tree root found: " + me);
+                    System.out.println("Server: " + me + " is in circle");
                     circleStates.active = false;
                     circleStates.inCircle = 1;
                     Send("handleCountCircle", null, msg.index);
@@ -297,6 +299,7 @@ public class Server implements ServerRMI {
         if (!assigned) {
             if (msg.flag) {
                 circleStates.inCircle = 1;
+                System.out.println("Server: " + me + " is in circle");
                 for (int child : this.circleStates.children) {
                     Send("handleCircle", msg, child);
                 }

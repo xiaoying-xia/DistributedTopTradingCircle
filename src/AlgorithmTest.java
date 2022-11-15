@@ -25,7 +25,7 @@ public class AlgorithmTest {
     }
 
     @Test
-    public void testSingleCircle1() {
+    public void test1() {
         System.out.println("Test Case 1: Single Circle");
         int n = 3;
         List<List<Integer>> prefs = new ArrayList<>();
@@ -42,17 +42,47 @@ public class AlgorithmTest {
             assertTrue("Server: " + servers[i] + " is not assigned", servers[i].assigned);
             assertEquals("Wrong assignment for server: " + i + ", should be: " + res[i] + ", but algo gives: " + servers[i].house, res[i], servers[i].house);
         }
-        System.out.println("...Passed");
         System.out.println("====================================");
+        System.out.println("Result:");
         for (Server server : servers) {
-            System.out.println("Result:");
             System.out.println("Server: " + server.me + ", assigned: " + server.assigned + ", house: " + server.house);
         }
+        System.out.println();
+        System.out.println("...Passed");
+
     }
 
     @Test
-    public void testSingleCircle2() {
+    public void test2() {
         System.out.println("Test Case 2: Single Circle");
+        int n = 3;
+        List<List<Integer>> prefs = new ArrayList<>();
+        prefs.add(Arrays.asList(2, 3, 1));
+        prefs.add(Arrays.asList(3, 1, 2));
+        prefs.add(Arrays.asList(1, 2, 3));
+        List<Integer> ownedHouses = new ArrayList<>(Arrays.asList(1, 2, 3));
+        int[] res = {2, 3, 1};
+
+        Server[] servers = initServer(n, prefs, ownedHouses);
+        servers[0].Start();
+
+        for (int i = 0; i < n; i++) {
+            assertTrue("Server: " + servers[i] + " is not assigned", servers[i].assigned);
+            assertEquals("Wrong assignment for server: " + i + ", should be: " + res[i] + ", but algo gives: " + servers[i].house, res[i], servers[i].house);
+        }
+        System.out.println("====================================");
+        System.out.println("Result:");
+        for (Server server : servers) {
+            System.out.println("Server: " + server.me + ", assigned: " + server.assigned + ", house: " + server.house);
+        }
+        System.out.println();
+        System.out.println("...Passed");
+
+    }
+
+    @Test
+    public void test3() {
+        System.out.println("Test Case 3: Single Circle");
         int n = 4;
         List<List<Integer>> prefs = new ArrayList<>();
         prefs.add(Arrays.asList(1, 3, 4, 2));
@@ -74,13 +104,13 @@ public class AlgorithmTest {
         for (Server server : servers) {
             System.out.println("Server: " + server.me + ", assigned: " + server.assigned + ", house: " + server.house);
         }
-        System.out.println("====================================");
+        System.out.println();
         System.out.println("...Passed");
     }
 
     @Test
-    public void testSingleCircle3() {
-        System.out.println("Test Case 3: Multiple Circle");
+    public void test4() {
+        System.out.println("Test Case 4: Multiple Circle");
         int n = 3;
         List<List<Integer>> prefs = new ArrayList<>();
         prefs.add(Arrays.asList(1, 2, 3));
@@ -101,7 +131,7 @@ public class AlgorithmTest {
         for (Server server : servers) {
             System.out.println("Server: " + server.me + ", assigned: " + server.assigned + ", house: " + server.house);
         }
-        System.out.println("====================================");
+        System.out.println();
         System.out.println("...Passed");
     }
 }
