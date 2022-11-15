@@ -17,9 +17,9 @@ Original paper: [Parallel and Distributed Algorithms for the housing allocation 
   - Print `server.house` to check the result
   
 ## House Allocation Problem
-We have n agents, every agent holds a house initially, and each of them have a preference list of the houses on the market. Our goal is to find a [core-stable](https://en.wikipedia.org/wiki/Core_(game_theory)) allocation (a re-allocation of houses to agents, such that all mutually-beneficial exchanges have been realized).  
+We have $n$ agents, every agent holds a house initially, and each of them have a preference list of the houses on the market. Our goal is to find a [core-stable](https://en.wikipedia.org/wiki/Core_(game_theory)) allocation (a re-allocation of houses to agents, such that all mutually-beneficial exchanges have been realized).  
 
-- Input: n servers, their initially owned houses and preference list
+- Input: $n$ servers, their initially owned houses and preference list
 - Output: a core-stable re-allocation  
 
 ## Example
@@ -34,4 +34,9 @@ This case is verified by test case 2 in `AlgorithmTest.java`
 
 
 ## Implementation Details
-There're several synchronization steps in the algorithm, which means every server needs to finish one step before moving forward to the next step. For example, in the Las Vegas Algorithm for finding circles in the functional graph, one server has to wait for its successor server to finish flipping a coin and reply to it, before it can move on to the exploring step. This is like a 'chain-effect', server 0 waits for server 1, server 1 waits for server 2... The consequence is every server needs to wait for all servers to flip a coin before moving on. 
+There're several synchronization steps in the algorithm, which means every server needs to finish one step before moving forward to the next step. For example, in the Las Vegas Algorithm for finding circles in the functional graph, one server has to wait for its successor server to finish flipping a coin and reply to it, before it can move on to the exploring step. This is like a 'chain-effect', server 0 waits for server 1, server 1 waits for server 2... The consequence is every server needs to wait for all servers to flip a coin before moving on.  
+
+We can solve this problem in a totally distributed way, that is, having every server broadcast a 'Done Flipping Coin' message to every server except itself, and wait for $n - 1$ such messages from everyone else before moving on to the next step. This will take $O(n^2)$ message complexity. Since it is assumed no server could be faulty, we can simplify the message complexity by having one process control the pace and notify everyone when they can enter the next step.
+
+It is natural to have the server from which we invoke the algorithm take the duty. The `Start()` method does this job. First, it'll start broadcasting current house allocation information to everyone, on receiving this message, servers will store the house information, and 
+
