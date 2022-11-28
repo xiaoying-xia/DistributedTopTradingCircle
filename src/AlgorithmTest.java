@@ -9,7 +9,7 @@ import static org.junit.Assert.assertTrue;
 
 public class AlgorithmTest {
 
-    private static Server[] initServer(int n, List<List<Integer>> prefs, List<Integer> houses) {
+    private Server[] initServer(int n, List<List<Integer>> prefs, List<Integer> houses) {
         String host = "127.0.0.1";
         String[] peers = new String[n];
         int[] ports = new int[n];
@@ -22,6 +22,14 @@ public class AlgorithmTest {
             servers[i] = new Server(peers, ports, i, prefs.get(i), houses.get(i));
         }
         return servers;
+    }
+
+    private void cleanup(Server[] servers){
+        for (Server server : servers) {
+            if (server != null) {
+                server.Kill();
+            }
+        }
     }
 
     @Test
@@ -49,6 +57,7 @@ public class AlgorithmTest {
         }
         System.out.println();
         System.out.println("...Passed");
+        cleanup(servers);
 
     }
 
@@ -57,11 +66,11 @@ public class AlgorithmTest {
         System.out.println("Test Case 2: Single Circle");
         int n = 3;
         List<List<Integer>> prefs = new ArrayList<>();
-        prefs.add(Arrays.asList(2, 3, 1));
+        prefs.add(Arrays.asList(3, 2, 1));
         prefs.add(Arrays.asList(3, 1, 2));
         prefs.add(Arrays.asList(1, 2, 3));
         List<Integer> ownedHouses = new ArrayList<>(Arrays.asList(1, 2, 3));
-        int[] res = {2, 3, 1};
+        int[] res = {3, 2, 1};
 
         Server[] servers = initServer(n, prefs, ownedHouses);
         servers[0].Start();
@@ -77,16 +86,16 @@ public class AlgorithmTest {
         }
         System.out.println();
         System.out.println("...Passed");
-
+        cleanup(servers);
     }
 
     @Test
     public void test3() {
-        System.out.println("Test Case 3: Single Circle");
+        System.out.println("Test Case 3: Single Circle, more complex");
         int n = 4;
         List<List<Integer>> prefs = new ArrayList<>();
         prefs.add(Arrays.asList(1, 3, 4, 2));
-        prefs.add(Arrays.asList(1, 3, 4, 2));
+        prefs.add(Arrays.asList(3, 1, 4, 2));
         prefs.add(Arrays.asList(2, 4, 3, 1));
         prefs.add(Arrays.asList(2, 3, 4, 1));
         List<Integer> ownedHouses = new ArrayList<>(Arrays.asList(1, 2, 3, 4));
@@ -106,11 +115,13 @@ public class AlgorithmTest {
         }
         System.out.println();
         System.out.println("...Passed");
+        cleanup(servers);
+
     }
 
     @Test
     public void test4() {
-        System.out.println("Test Case 4: Multiple Circle");
+        System.out.println("Test Case 4: Multiple Circles");
         int n = 3;
         List<List<Integer>> prefs = new ArrayList<>();
         prefs.add(Arrays.asList(1, 2, 3));
@@ -133,5 +144,7 @@ public class AlgorithmTest {
         }
         System.out.println();
         System.out.println("...Passed");
+        cleanup(servers);
+
     }
 }

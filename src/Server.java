@@ -49,7 +49,7 @@ public class Server implements ServerRMI {
     int countAssigned; // total number of servers assigned
     boolean hasNextStage; // whether to continue TTC
 
-//    AtomicBoolean dead;// for testing
+    AtomicBoolean dead;// for testing
 
     Registry registry;
     ServerRMI stub;
@@ -71,6 +71,8 @@ public class Server implements ServerRMI {
         this.next = -1;
         this.countAssigned = 0;
         this.hasNextStage = true;
+
+        this.dead = new AtomicBoolean(false);
 
         // register peers in the system
         try{
@@ -138,9 +140,10 @@ public class Server implements ServerRMI {
     // Kickoff method, users can invoke top trading circle algorithm from any server
     public void Start() {
         try {
-            // Broadcast my house information to everyone
+            // Have everyone broadcast its house information to everyone
             this.broadcastCurrentHouse();
 
+            // Move into one stage of TTC
             while(hasNextStage && countAssigned < peers.length) {
                 System.out.println("=============Starting New Stage=============");
                 hasNextStage = false;
@@ -150,9 +153,7 @@ public class Server implements ServerRMI {
                         handleReset(null);
                     } else Send("handleReset", null, i);
                 }
-
                 circleStates.countCircle = countAssigned;
-
                 // Keep doing this until everyone knows whether he's in circle
                 while (circleStates.countCircle < peers.length) {
 //                    System.out.println("stuck!!!");
@@ -172,12 +173,6 @@ public class Server implements ServerRMI {
                         } else Send("handleExplore", new Message(me, -1, false), i);
                     }
                 }
-//                System.out.println("=================================");
-//                System.out.println("This round of circle found");
-//                System.out.println("servers decided: " + circleStates.countCircle);
-//                System.out.println("Server: " + me + ", inCircle: " + circleStates.inCircle + ", active: " + circleStates.active);
-//                System.out.println("next: " + next + ", succ: " + succ);
-//                System.out.println("My coin: " + circleStates.coin + ", succCoin: " + Send("handleSuccReq", null, succ).value);
                 // Now, everyone unassigned knows whether he's in the circle
                 // We can move on to the next step: exchange houses for servers in circle
                 for (int i = 0; i < peers.length; i++) {
@@ -400,18 +395,18 @@ public class Server implements ServerRMI {
         }
     }
 
-//    public void Kill(){
-//        this.dead.getAndSet(true);
-//        if(this.registry != null){
-//            try {
-//                UnicastRemoteObject.unexportObject(this.registry, true);
-//            } catch(Exception e){
-//                System.out.println("None reference");
-//            }
-//        }
-//    }
-//
-//    public boolean isDead(){
-//        return this.dead.get();
-//    }
+    public void Kill(){
+        this.dead.getAndSet(true);
+        if(this.registry != null){
+            try {
+                UnicastRemoteObject.unexportObject(this.registry, true);
+            } catch(Exception e){
+                System.out.println("None reference");
+            }
+        }
+    }
+
+    public boolean isDead(){
+        return this.dead.get();
+    }
 }
